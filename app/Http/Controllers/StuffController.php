@@ -259,21 +259,16 @@ public function permanentDelateAll()
 
             $stuff->delete();
     
-            return response()->json([
-                'success' => true,
-                'message' => "Data Berhasil Dihapus dengan id $id",
-                'data' => [
-                    'id' => $id,
-                ],
-            ], 200);
+            return ApiFormatter::sendResponse(200, true, "Berhasil menghapus data dengan id $id",['id' => $id]);
+
     
         }        
     catch(\Throwable $th)
     {
-        return response()->json([
-            'success' => false,
-            'message' => "Proses gagal! Data dengan id $id tidak ditemukan"
-        ], 404);
+        return ApiFormatter::sendResponse(404, false, "Proses gagal! silakan coba lagi", $th->getMessage());
+
     }
     }
 }
+
+// Sama aja jika pakai return sendResponse (APIFormatter) dengan response default 
