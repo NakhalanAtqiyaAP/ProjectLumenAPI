@@ -5,49 +5,64 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Lending;
 use App\Models\Restoration;
+use app\Models\keyApi;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use App\Helpers\ApiFormatter;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 
 
 class UserController extends Controller
 {
 
+    public function login(Request $request)
+    {
+        try{
+            $credentials = $request->validate([
+                'email' => 'required|email',
+                'password' => 'required',
+            ]);
+        
+            if (Auth::attempt($credentials)) {
+                $request->session()->regenerate();
+        
+                $user = Auth::user();
+        
+                unset($user->password);
+        
+                $keyData = [
+                    'user_id' => $user->id,
+                    'key' => Str::random(40), 
+                    'level' => 1,
+                    'ignore_limits' => 0,
+                    'is_private_key' => 0,
+                    'ip_addresses' => $request->ip(),
+                    'date_created' => Carbon::now()->timestamp, 
+                ];
+        
+                $key = keyApi::create($keyData);
+        
+                return ApiFormatter::sendResponse(200,true,'Berhasil Login!',  ['user' => $user,
+                'api_key' => $key]);
+            }else{
+                return ApiFormatter::sendResponse(401,false,'Login Gagal, Email atau Password Salah!' );
+            }
+        }
 
-    // public function login(Request $request)
-    // {
-    //     $this->validate($request, [
-    //         'email' => 'required|email',
-    //         'password' => 'required|min:6'
-    //     ]);
-    
-    //     $email = $request->input('email');
-    //     $password = $request->input('password');
-    
-    //     // Cari pengguna berdasarkan email
-    //     $user = User::where('email', $email)->first();
-    
-    //     // Periksa apakah pengguna ditemukan
-    //     if (!$user) {
-    //         return response()->json(['message' => 'Login failed, User Salah'], 401);
-    //     }
-    
-    //     // Periksa apakah password cocok
-    //     if (!Hash::check($password, $user->password)) {
-    //         return response()->json(['message' => 'Login failed, Password Salah'], 401);
-    //     }
-    
-    //     // Jika email dan password sesuai, maka lakukan login
-    //     Auth::login($user);
-    
-    //     // Setelah login berhasil, Anda dapat mengembalikan respons atau token akses
-    //     return response()->json(['message' => 'Login berhasil', 'user' => $user]);
-    // }
-
+        catch (\Illuminate\Validation\ValidationException $th) {
+            
+            return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->validator->errors());
+        } catch (\Throwable $th) {
+            
+            return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->getMessage());
+        }
+       
+    }
 
     public function index()
     {
@@ -188,7 +203,7 @@ class UserController extends Controller
                 'role' => $role,
             ]);
         
-            return ApiFormatter::sendResponse(200,true, "Data berhasil diubag dengan id $id");
+            return ApiFormatter::sendResponse(200,true, "Data berhasil diubah dengan id $id");
           }
           catch(\Throwable $th){
             return ApiFormatter::sendResponse(400,false, 'Proses Gagal! Silakan coba lagi!', $th->getMessage());

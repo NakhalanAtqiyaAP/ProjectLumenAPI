@@ -149,7 +149,7 @@ class RestorationController extends Controller
             
             ]);
 
-            return ApiFormatter::sendResponse(200,true, "Data berhasil diubag dengan id $id");
+            return ApiFormatter::sendResponse(200,true, "Data berhasil diubah dengan id $id");
     }
 }
     catch(\Throwable $th){

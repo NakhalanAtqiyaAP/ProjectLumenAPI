@@ -15,7 +15,7 @@ Route::delete('/stuff/permanent/{id}', 'StuffController@permanentDelate');
 Route::put('/stuff/restore', 'StuffController@restoreAll');
 Route::put('/stuff/restore/{id}', 'StuffController@restore');
 
-Route::put('/stuff/{id}', 'StuffController@update');
+Route::patch('/stuff/{id}', 'StuffController@update');
 Route::get('/stuff/{id}', 'StuffController@show');
 Route::delete('/stuff/{id}', 'StuffController@destroy');
 // INBOUND STUFF ------------------------------------------------------------
@@ -27,7 +27,7 @@ Route::delete('/inbound/permanent/{id}', 'InboundStuffController@permanentDelate
 Route::put('/inbound/restore', 'InboundStuffController@restoreAll');
 Route::put('/inbound/restore/{id}', 'InboundStuffController@restore');
 
-Route::put('/inbound/{id}', 'InboundStuffController@update');
+Route::patch('/inbound/{id}', 'InboundStuffController@update');
 Route::get('/inbound/{id}', 'InboundStuffController@show');
 Route::delete('/inbound/{id}', 'InboundStuffController@destroy');
 
@@ -40,7 +40,7 @@ Route::delete('/stuffstock/permanent/{id}', 'StuffStockController@permanentDelat
 Route::put('/stuffstock/restore', 'StuffStockController@restoreAll');
 Route::put('/stuffstock/restore/{id}', 'StuffStockController@restore');
 
-Route::put('/stuffstock/{id}', 'StuffStockController@update');
+Route::patch('/stuffstock/{id}', 'StuffStockController@update');
 Route::get('/stuffstock/{id}', 'StuffStockController@show');
 Route::delete('/stuffstock/{id}', 'StuffStockController@destroy');
 // LENDING --------------------------------------------------------------   
@@ -53,7 +53,7 @@ Route::put('/lending/restore', 'LendingController@restoreAll');
 Route::put('/lending/restore/{id}', 'LendingController@restore');
 
 Route::get('/lending/{id}', 'LendingController@show');
-Route::put('/lending/{id}', 'LendingController@update');
+Route::patch('/lending/{id}', 'LendingController@update');
 Route::delete('/lending/{id}', 'LendingController@destroy');
 
 // RESTORATION --------------------------------------------------------------
@@ -66,13 +66,15 @@ Route::put('/restoration/restore', 'RestorationController@restoreAll');
 Route::put('/restoration/restore/{id}', 'RestorationController@restore');
 
 Route::get('/restoration/{id}', 'RestorationController@show');
-Route::put('/restoration/{id}', 'RestorationController@update');
+Route::patch('/restoration/{id}', 'RestorationController@update');
 Route::delete('/restoration/{id}', 'RestorationController@destroy');
 
 // USER --------------------------------------------------------------
 Route::get('/user', 'UserController@index');
 Route::post('/user-register', 'UserController@store');
+
 Route::post('/user-login', 'UserController@login');
+
 Route::get('/user/trash', 'UserController@deleted');
 Route::delete('/user/permanent', 'UserController@permanentDelateAll');
 Route::delete('/user/permanent/{id}', 'UserController@permanentDelate');
@@ -80,6 +82,8 @@ Route::put('/user/restore', 'UserController@restoreAll');
 Route::put('/user/restore/{id}', 'UserController@restore');
 
 Route::get('/user/{id}', 'UserController@show');
-Route::put('/user/{id}', 'UserController@update');
+Route::patch('/user/{id}', 'UserController@update');
 Route::delete('/user/{id}', 'UserController@destroy');
 
+//login
+Route::post('/login', 'AuthController@authenticate');

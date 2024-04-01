@@ -137,7 +137,7 @@ class StuffController extends Controller
     'category' => $category,
     ]);
 
-    return ApiFormatter::sendResponse(200,true, "Data berhasil diubag dengan id $id");
+    return ApiFormatter::sendResponse(200,true, "Data berhasil diubah dengan id $id");
   }
   catch(\Throwable $th){
     return ApiFormatter::sendResponse(400,false, 'Proses Gagal! Silakan coba lagi!', $th->getMessage());
