@@ -22,8 +22,8 @@ Route::delete('/stuff/{id}', 'StuffController@destroy');
 Route::get('/inbound', 'InboundStuffController@index');
 Route::post('/inbound', 'InboundStuffController@store');
 Route::get('/inbound/trash', 'InboundStuffController@deleted');
-Route::delete('/inbound/permanent', 'InboundStuffController@permanentDelateAll');
-Route::delete('/inbound/permanent/{id}', 'InboundStuffController@permanentDelate');
+Route::delete('/inbound/permanent', 'InboundStuffController@permanentDeleteAll');
+Route::delete('/inbound/permanent/{id}', 'InboundStuffController@permanentDelete');
 Route::put('/inbound/restore', 'InboundStuffController@restoreAll');
 Route::put('/inbound/restore/{id}', 'InboundStuffController@restore');
 
