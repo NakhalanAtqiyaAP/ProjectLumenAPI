@@ -41,6 +41,7 @@ class InboundStuffController extends Controller
 
     public function store(Request $request)
     {
+        
         $validator = Validator::make($request->all(), [
             'stuff_id'   => 'required',
             'total' => 'required',
@@ -74,7 +75,7 @@ class InboundStuffController extends Controller
                     'total_available' => (int)$total_stock
                 ]);
     
-                return ApiFormatter::sendResponse(201, true, 'Barang Masuk Berhasil Disimpan!');
+                return ApiFormatter::sendResponse(201, true, 'Barang Masuk Berhasil Disimpan!', $inbound);
             } else {
                 // Jika stok tidak ditemukan
                 return ApiFormatter::sendResponse(404, false, 'Stok tidak ditemukan untuk stuff_id yang ditemukan.');
