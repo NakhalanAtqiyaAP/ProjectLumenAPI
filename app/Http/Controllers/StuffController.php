@@ -6,15 +6,30 @@ use App\Models\Stuff;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Helpers\ApiFormatter;
+use App\Models\Lending;
+use App\Models\InboundStuff;
+use App\Models\StuffStock;
 
 class StuffController extends Controller
 {
+    public function __construct()
+{
+    $this->middleware('auth:api');
+}
   
     public function index()
     {
-       $stuff = Stuff::with('stuffstock')->get();
+        try{
+            $stuff = Stuff::with('stuffstock')->get();
 
-       return ApiFormatter::sendResponse(200,true,'Lihat semua barang', $stuff);
+            return ApiFormatter::sendResponse(200,true,'Lihat semua barang', $stuff);
+     
+        }
+        catch(\Exception $err){
+            return ApiFormatter::sendResponse(400, 'bad request', $err->getMessage());
+        }
+
+
     // $stuff = Stuff::all();
 
     // if ($stuff->isEmpty()) {
@@ -224,15 +239,18 @@ class StuffController extends Controller
     {
         try{
             $stuff = Stuff::onlyTrashed()->where('id', $id)->forceDelete();
+
             if($stuff){
             $stuff->delete();
             }
             return ApiFormatter::sendResponse(200, true, "Berhasil menghapus data secara permanen!", ["id"=> $id]);
         }
-        catch(\Throwable $th)
-        {
-            return ApiFormatter::sendResponse(404, false, "Proses gagal! silakan coba lagi", $th->getMessage());
-        }
+        catch(\Exception $err)
+    {
+                return ApiFormatter::sendResponse(400,"bad request", "Tidak dapat dihapus, karena sudah terdapat data ", $err->getMessage());
+        
+    
+    }
     }
 
 public function permanentDelateAll()
@@ -240,34 +258,45 @@ public function permanentDelateAll()
     try{
         $stuff = Stuff::onlyTrashed();
 
+
         $stuff->forceDelete();
         return ApiFormatter::sendResponse(200, true, "Berhasil menghapus semua data secara permanen!");
     }
-    catch(\Throwable $th)
+    catch(\Exception $err)
     {
-        return ApiFormatter::sendResponse(404, false, "Proses gagal! silakan coba lagi", $th->getMessage());
+       
+                return ApiFormatter::sendResponse(400,"bad request", "Tidak dapat dihapus, karena sudah terdapat data ", $err->getMessage());
+    
     }
 }
 
 
 
-
     public function destroy($id)
     {
-        try{
+        try {
             $stuff = Stuff::findOrFail($id);
+    
+           
+            if ($stuff->inboundStuffsStock()->exists() || $stuff->stuffStock()->exists() || $stuff->lendings()->exists()) {
+              
+                $relatedData = [
+                    'inbound' => $stuff->inboundStuffsStock()->exists() ? $stuff->inboundStuffsStock->toArray() : null,
+                    'stuffStock' => $stuff->stuffStock()->exists() ? $stuff->stuffStock->toArray() : null,
+                    'lending' => $stuff->lendings()->exists() ? $stuff->lendings->toArray() : null,
+                ];
 
+                return ApiFormatter::sendResponse(400, false, "Tidak dapat menghapus Stuff dengan id $id karena memiliki data ", $relatedData);     
+            }
+           
+           
             $stuff->delete();
     
-            return ApiFormatter::sendResponse(200, true, "Berhasil menghapus data dengan id $id",['id' => $id]);
-
+            return ApiFormatter::sendResponse(200, true, "Berhasil menghapus data dengan id $id");
+        } catch (\Exception $err) {
+            return ApiFormatter::sendResponse(400, false, "Gagal menghapus Stuff dengan id   $id", $err->getMessage());
+        }
     
-        }        
-    catch(\Throwable $th)
-    {
-        return ApiFormatter::sendResponse(404, false, "Proses gagal! silakan coba lagi", $th->getMessage());
-
-    }
     }
 }
 

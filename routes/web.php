@@ -1,9 +1,21 @@
 <?php
 use Illuminate\Support\Facades\Route;
 
-// $app->routeMiddleware([
+// $router->routeMiddleware([
 //     'auth' => App\Http\Middleware\Authenticate::class,
 // ]);
+// $router->register(App\Providers\AppServiceProvider::class);
+
+// $router->register(Tymon\JWTAuth\Providers\LumenServiceProvider::class);
+
+
+// $router->group(['middleware' => 'admin'], function () use ($router) {
+//     $router->get('/admin/dashboard', function () {
+//         return "Ini adalah Dashboard Admin";
+//     });
+    
+// });
+
 
 
 // STUFF
@@ -21,7 +33,7 @@ Route::delete('/stuff/{id}', 'StuffController@destroy');
 // INBOUND STUFF ------------------------------------------------------------
 Route::get('/inbound', 'InboundStuffController@index');
 Route::post('/inbound', 'InboundStuffController@store');
-Route::get('/inbound/trash', 'InboundStuffController@deleted');
+Route::delete('/inbound/trash', 'InboundStuffController@deleted');
 Route::delete('/inbound/permanent', 'InboundStuffController@permanentDeleteAll');
 Route::delete('/inbound/permanent/{id}', 'InboundStuffController@permanentDelete');
 Route::put('/inbound/restore', 'InboundStuffController@restoreAll');
@@ -73,7 +85,7 @@ Route::delete('/restoration/{id}', 'RestorationController@destroy');
 Route::get('/user', 'UserController@index');
 Route::post('/user-register', 'UserController@store');
 
-Route::post('/user-login', 'UserController@login');
+// Route::post('/user-login', 'UserController@login');
 
 Route::get('/user/trash', 'UserController@deleted');
 Route::delete('/user/permanent', 'UserController@permanentDelateAll');
@@ -86,4 +98,9 @@ Route::patch('/user/{id}', 'UserController@update');
 Route::delete('/user/{id}', 'UserController@destroy');
 
 //login
-Route::post('/login', 'AuthController@authenticate');
+$router->get('/', function () use ($router){
+    return $router->app->version();
+});
+Route::post('/login', 'AuthController@login');
+Route::post('/logout', 'AuthController@logout');
+Route::post('/profile', 'AuthController@me');

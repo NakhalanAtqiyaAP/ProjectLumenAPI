@@ -80,7 +80,10 @@ $app->routeMiddleware([
     'auth' => App\Http\Middleware\Authenticate::class,
 ]);
 
+$app->configure('auth');
 
+// $app->register(App\Providers\AppServiceProvider::class);
+// $app->register(Tymon\JWTAuth\Providers\LumenServiceProvider::class);
 
     
 /*
@@ -94,8 +97,9 @@ $app->routeMiddleware([
 |
 */
 // $app->configure('auth');
-$app->register(App\Providers\AppServiceProvider::class);
+// $app->register(App\Providers\AppServiceProvider::class);
 $app->register(App\Providers\AuthServiceProvider::class);
+$app->register(Tymon\JWTAuth\Providers\LumenServiceProvider::class);
 // $app->register(App\Providers\EventServiceProvider::class);
 // $app->alias('auth', Illuminate\Auth\AuthManager::class);
 
@@ -110,6 +114,7 @@ $app->register(App\Providers\AuthServiceProvider::class);
 | can respond to, as well as the controllers that may handle them.
 |
 */
+
 $app->withEloquent();
 $app->register(Flipbox\LumenGenerator\LumenGeneratorServiceProvider::class);
 

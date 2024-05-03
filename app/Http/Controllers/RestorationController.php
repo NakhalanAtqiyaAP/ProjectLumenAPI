@@ -6,9 +6,17 @@ use App\Models\Restoration;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Helpers\ApiFormatter;
+use App\Models\Lending;
+use App\Models\StuffStock;
+
+
 
 class RestorationController extends Controller
 {
+    public function __construct()
+{
+    $this->middleware('auth:api');
+}
     public function index()
     {
         $restoration = Restoration::with('lending')->get();
@@ -30,85 +38,56 @@ class RestorationController extends Controller
     // ], 200);
     }
 
-    public function store(Request $request)
+    public function store (Request $request, $lending_id)
     {
         try {
             $this->validate($request, [
-                'user_id' => 'required',
-                'lending_id' => 'required',
-                'date_time' => 'required',
+                'date_time'=> 'required',
                 'total_good_stuff' => 'required',
                 'total_defec_stuff' => 'required',
             ]);
-            $restoration = Restoration::create([
-                'user_id' => $request->input('user_id'),
-                'lending_id' => $request->input('lending_id'),
-                'date_time' => $request->input('date_time'),
-                'total_good_stuff' => $request->input('total_good_stuff'),
-                'total_defec_stuff' => $request->input('total_defec_stuff'),
-            ]);
-            
-            return ApiFormatter::sendResponse(201, true, 'Barang Berhasil Disimpan!', $restoration);
+
+            $lending = Lending::where('id', $lending_id)->first();
+
+            $totalStuffRestoration = (int)$request->total_godd_stuff + (int)$request->total_defec_stuff;
+            if ((int)$totalStuffRestoration > (int)$lending['total_stuff']) {
+                return ApiFormatter::sendResponse(400, 'bad request', 'Total barang kembali lebih banyak dari barang dipinjam!');
+            } else {
+                $restoration = Restoration::updateOrCreate([
+                    'lending_id' => $lending_id
+                ], [
+                    'date_time' => $request->date_time,
+                    'total_good_stuff' => $request->total_good_stuff,
+                    'total_defec_stuff' => $request->total_defec_stuff,
+                    'user_id' => auth()->user()->id,
+                ]);
+
+                $stuffStock = StuffStock::where('stuff_id', $lending['stuff_id'])->first();
+                $totalAvailableStock = (int)$stuffStock['total_available'] + (int)$request->total_good_stuff;
+                $totalDefecStock = (int)$stuffStock['total_defec'] + (int)$request->total_defec_stuff;
+                $stuffStock->update([
+                    'total_available' => $totalAvailableStock,
+                    'total_defec' => $totalDefecStock,
+                ]);
+
+                $lendingRestoration = Lending::where('id', $lending_id)->with('user', 'restoration', 'restoration.user', 'stuff', 'stuff.stuffStock')->first();
+                return ApiFormatter::sendResponse(200, 'success', $lendingRestoration);
         }
-         catch (\Illuminate\Validation\ValidationException $th) {
-            
-            return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->validator->errors());
-        } catch (\Throwable $th) {
-            
-            return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->getMessage());
-        }
-
-        // $validator = Validator::make($request->all(), [
-        //     'user_id' => 'required',
-        //     'lending_id' => 'required',
-        //     'date_time' => 'required',
-        //     'total_good_stuff' => 'required',
-        //     'total_defec_stuff' => 'required',
-            
-        // ]);
-        // if ($validator->fails()) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Semua kolom Wajib Diisi!',
-        //         'data' => $validator->errors(),
-        //     ], 400);
-        // } else {
-        //     $Restoration = Restoration::create($request->all());
-
-        //     return response()->json([
-        //         'success' => true,
-        //         'message' => 'Barang Berhasil Disimpan!',
-        //         'data' => $Restoration,
-        //     ], 201);
-
-        //     if ($Restoration) {
-        //         return response()->json([
-        //             'success' => true,
-        //             'message' => 'Barang Berhasil Disimpan',
-        //             'data' => $Restoration,
-        //         ], 201);
-        //     } else {
-        //         $Restoration = Restoration::create($request->all());
-    
-        //         return response()->json([
-        //             'success' => false,
-        //             'message' => 'Barang Gagal Disimpan!',
-        //         ], 400);
-        //     }
-           
-        // }
+    } catch (\Exception $err) {
+        return ApiFormatter::sendResponse(400, 'bad request', $err->getMessage());
     }
-
+}
+ 
     public function show($id)
     {
         try{
-            $resoration = Restoration::with('lending')->findOrFail($id);
+            $data = Lending::where('id', $id)->with('user', 'restoration', 'restoration.user', 'stuff', 'stuff.stuffstock')->first();
 
-            return ApiFormatter::sendResponse(200, true, "Lihat Barang dengan id $id",$resoration);
+            return ApiFormatter::sendResponse(200,'success', $data);
         }
-        catch(\Throwable $th)
+        catch(\Exception $err)
         {
-            return ApiFormatter::sendResponse(404, false, "Barang dengan id $id tidak ditemukan");
+            return ApiFormatter::sendResponse(404, 'bad request', $err->getMessage());
         }
 
         // $Restoration = Restoration::find($id);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\Stuff;
 use App\Models\Restoration;
 use App\Models\Lending;
+use App\Models\StuffStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Helpers\ApiFormatter;
@@ -11,15 +12,35 @@ use App\Helpers\ApiFormatter;
 
 class LendingController extends Controller
 {
+    public function __construct()
+{
+    $this->middleware('auth:api');
+}
     public function index()
     {
-        $lending = Lending::with('stuff','restoration')->get();
-        $stuff = Stuff::get();
-        $resto = Restoration::get();
 
-        $data = ['barang' => $stuff, 'pengembalian' => $resto];
+        try{
+            $data = Lending::with('stuff', 'user', 'restoration');
 
-        return ApiFormatter::sendResponse(200,true,'Lihat semua barang', $lending);
+            return ApiFormatter::sendResponse(200, 'success', $data);
+    
+        }
+        catch(\Exception $err){
+            return ApiFormatter::sendResponse(400, 'bad request', $err->getMessage());
+        }        
+
+
+
+
+
+
+        // $lending = Lending::with('stuff','restoration')->get();
+        // $stuff = Stuff::get();
+        // $resto = Restoration::get();
+
+        // $data = ['barang' => $stuff, 'pengembalian' => $resto];
+
+        // return ApiFormatter::sendResponse(200,true,'Lihat semua barang', $lending);
     // $lending = Lending::all();
 
     // if ($Lending->isEmpty()) {
@@ -40,33 +61,42 @@ class LendingController extends Controller
     {
         try {
             $this->validate($request, [
-            'stuff_id' => 'required',
-            'date_time' => 'required',
-            'name' => 'required',
-            'user_id' => 'required',
-            'notes' => 'required',
-            'total_stuff' => 'required',
+                'stuff_id' => 'required',
+                'date_time' => 'required',
+                'name' => 'required',
+                'total_stuff' => 'required'
             ]);
 
-            $lending= Lending::create([
-                'stuff_id' => $request->input('stuff_id'),
-                'date_time' => $request->input('date_time'),
-                'name' => $request->input('name'),
-                'user_id' => $request->input('user_id'),
-                'notes' => $request->input('notes'),
-                'total_stuff' => $request->input('total_stuff'),
+            $totalAvailable = StuffStock::where('stuff_id', $request-> stuff_id)->value('total_available');
 
-            ]);
-            
-            return ApiFormatter::sendResponse(201, true, 'Barang Berhasil Disimpan!', $lending);
+            if(is_null($totalAvailable))
+            {
+                return ApiFormatter::sendResponse(400,'bad request', 'belum ada data inbound ');
+            }elseif ((int)$request->total_stuff > (int)$totalAvailable){
+                return ApiFormatter::sendResponse(400,'bad request', 'Stock tidak tersedia ');
+            }else{
+                $lending = Lending::create([
+                    'stuff_id' => $request -> stuff_id,
+                    'date_time' => $request -> date_time,
+                    'name' => $request -> name,
+                    'total_stuff' => $request -> total_stuff,
+                    'notes' => $request -> notes ? $request : '-',
+                    'user_id' => $request -> auth()->user()->id,
+                    
+                ]);
+            }
+
+            $totalAvailableNow = (int)$totalAvailable - (int) $request-> total_stuff;
+            $stuffStock = StuffStock::where('stuff_id', $request->stuff_id)->update(['total_available' => $totalAvailableNow]);
+
+            $dataLending = Lending::where('id', $lending['id'])->with('user','stuff', 'stuff.stuffstock')->first();
+
+            return ApiFormatter::sendResponse(201, true, 'Barang Berhasil Disimpan!', );
         }
-         catch (\Illuminate\Validation\ValidationException $th) {
+         catch (\Exception $err) {
             
-            return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->validator->errors());
-        } catch (\Throwable $th) {
-            
-            return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->getMessage());
-       
+            return ApiFormatter::sendResponse(400,'bad request',$err->getMessage());
+        } 
 
         // $validator = Validator::make($request->all(), [
         //     'stuff_id' => 'required',
@@ -107,7 +137,7 @@ class LendingController extends Controller
         //     }
            
         // }
-    }
+    
     }
     public function show($id)
     {
@@ -289,17 +319,35 @@ class LendingController extends Controller
     }
     public function destroy($id)
     {
-        try{
-            $lending = Lending::findOrFail($id);
-
+        try {
+            $lending = Lending::find($id);
+    
+            if (!$lending) {
+                return ApiFormatter::sendResponse(404, 'not found', 'Data peminjaman tidak ditemukan');
+            }
+    
+            $Restoration = $lending->restoration()->exists();
+    
+            if ($Restoration) {
+                return ApiFormatter::sendResponse(400, 'bad request', 'Peminjaman sudah memiliki pengembalian, tidak dapat dibatalkan');
+            }
+    
+            $totalStuff = $lending->total_stuff;
+            $stuffId = $lending->stuff_id;
+    
             $lending->delete();
     
-            return ApiFormatter::sendResponse(200, true, "Berhasil menghapus data dengan id $id",['id' => $id]);
-
-        }        
-    catch(\Throwable $th)
-    {
-        return ApiFormatter::sendResponse(404, false, "Proses gagal! silakan coba lagi", $th->getMessage());
+            // mengembalika total_stuff ke total_available pada stuff_stock jika berhasil menghapus peminjaman
+            $stuffStock = StuffStock::where('stuff_id', $stuffId)->first();
+            if ($stuffStock) {
+                $stuffStock->total_available += $totalStuff;
+                $stuffStock->save();
+            }
+    
+            return ApiFormatter::sendResponse(200, 'success', 'Berhasil hapus data peminjaman');
+        } catch (\Exception $err) {
+            return ApiFormatter::sendResponse(400, 'bad request', $err->getMessage());
+        }
     }
-    }
+    
 }

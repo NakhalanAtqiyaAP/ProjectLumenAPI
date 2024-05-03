@@ -15,6 +15,10 @@ use Illuminate\Support\Facades\File;
 
 class InboundStuffController extends Controller
 {
+    public function __construct()
+{
+    $this->middleware('auth:api');
+}
     public function index()
     {
         $iStuff = InboundStuff::with('stuff.stuffstock')->get();
@@ -41,45 +45,48 @@ class InboundStuffController extends Controller
 
     public function store(Request $request)
     {
-        
-        $validator = Validator::make($request->all(), [
-            'stuff_id'   => 'required',
-            'total' => 'required',
-            'date' => 'required',
-            'proff_file' => 'required|file',
-        ]);
-    
-        if ($validator->fails()) {
-            return ApiFormatter::sendResponse(400, false, 'Semua Kolom Wajib Diisi!', $validator->errors());
-        } else {
-            // Mengambil file
-            $file = $request->file('proff_file');
-            $fileName = $request->input('stuff_id') . '_' . strtotime($request->input('date')) . strtotime(date('H:i')) . '.' . $file->getClientOriginalExtension();
-            $file->move('proff', $fileName);
-    
-            // Membuat InboundStuff
-            $inbound = InboundStuff::create([
-                'stuff_id'     => $request->input('stuff_id'),
-                'total'   => $request->input('total'),
-                'date'   => $request->input('date'),
-                'proff_file'   => $fileName,
+        try{
+            $validator = Validator::make($request->all(), [
+                'stuff_id'   => 'required|integer',
+                'total' => 'required|integer',
+                'date' => 'required',
+                'proff_file' => 'required|image',
             ]);
-    
-            // Memeriksa ketersediaan stok
-            $stock = StuffStock::where('stuff_id', $request->input('stuff_id'))->first();
-    
-            if ($stock) {
-                // Memperbarui total stok yang tersedia
-                $total_stock = (int)$stock->total_available + (int)$request->input('total');
-                $stock->update([
-                    'total_available' => (int)$total_stock
-                ]);
-    
-                return ApiFormatter::sendResponse(201, true, 'Barang Masuk Berhasil Disimpan!', $inbound);
+        
+            if ($validator->fails()) {
+                return ApiFormatter::sendResponse(400, false, 'Semua Kolom Wajib Diisi!', $validator->errors());
             } else {
-                // Jika stok tidak ditemukan
-                return ApiFormatter::sendResponse(404, false, 'Stok tidak ditemukan untuk stuff_id yang ditemukan.');
-            }
+                // Mengambil file
+                $file = $request->file('proff_file');
+                $fileName = $request->input('stuff_id') . '_' . strtotime($request->input('date')) . strtotime(date('H:i')) . '.' . $file->getClientOriginalExtension();
+                $file->move('proff', $fileName);
+        
+                // Membuat InboundStuff
+                $inbound = InboundStuff::create([
+                    'stuff_id'     => $request->input('stuff_id'),
+                    'total'   => $request->input('total'),
+                    'date'   => $request->input('date'),
+                    'proff_file'   => $fileName,
+                ]);
+        
+                // Memeriksa ketersediaan stok
+                $stock = StuffStock::where('stuff_id', $request->input('stuff_id'))->first();
+        
+                if ($inbound && $stock) {
+                    // Memperbarui total stok yang tersedia
+                    $total_stock = $stock->total_available + (int)$request->input('total');
+                    $stock->update(['total_available' => $total_stock]);
+        
+                    return ApiFormatter::sendResponse(201, true, 'Barang Masuk Berhasil Disimpan!', $inbound);
+                } else {
+                    // Jika stok tidak ditemukan
+                    return ApiFormatter::sendResponse(404, false, 'Stok tidak ditemukan untuk stuff_id yang ditemukan.', $inbound);
+                }
+            }      
+        }
+        catch (\Illuminate\Validation\ValidationException $th) {
+            
+            return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->validator->errors());
         }
     }
 
@@ -271,4 +278,6 @@ class InboundStuffController extends Controller
 
     }
     }
+
+        
 }

@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Validator;
 
 class StuffStockController extends Controller
 {
+    public function __construct()
+{
+    $this->middleware('auth:api');
+}
     public function index()
     {
         $stuffstock = StuffStock::with('stuff')->get();

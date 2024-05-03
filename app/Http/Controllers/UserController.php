@@ -19,50 +19,53 @@ use Carbon\Carbon;
 
 class UserController extends Controller
 {
-
-    public function login(Request $request)
+    public function __construct()
     {
-        try{
-            $credentials = $request->validate([
-                'email' => 'required|email',
-                'password' => 'required',
-            ]);
-        
-            if (Auth::attempt($credentials)) {
-                $request->session()->regenerate();
-        
-                $user = Auth::user();
-        
-                unset($user->password);
-        
-                $keyData = [
-                    'user_id' => $user->id,
-                    'key' => Str::random(40), 
-                    'level' => 1,
-                    'ignore_limits' => 0,
-                    'is_private_key' => 0,
-                    'ip_addresses' => $request->ip(),
-                    'date_created' => Carbon::now()->timestamp, 
-                ];
-        
-                $key = keyApi::create($keyData);
-        
-                return ApiFormatter::sendResponse(200,true,'Berhasil Login!',  ['user' => $user,
-                'api_key' => $key]);
-            }else{
-                return ApiFormatter::sendResponse(401,false,'Login Gagal, Email atau Password Salah!' );
-            }
-        }
-
-        catch (\Illuminate\Validation\ValidationException $th) {
-            
-            return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->validator->errors());
-        } catch (\Throwable $th) {
-            
-            return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->getMessage());
-        }
-       
+        $this->middleware('auth:api');
     }
+    // public function login(Request $request)
+    // {
+    //     try{
+    //         $credentials = $request->validate([
+    //             'email' => 'required|email',
+    //             'password' => 'required',
+    //         ]);
+        
+    //         if (Auth::attempt($credentials)) {
+    //             $request->session()->regenerate();
+        
+    //             $user = Auth::user();
+        
+    //             unset($user->password);
+        
+    //             $keyData = [
+    //                 'user_id' => $user->id,
+    //                 'key' => Str::random(40), 
+    //                 'level' => 1,
+    //                 'ignore_limits' => 0,
+    //                 'is_private_key' => 0,
+    //                 'ip_addresses' => $request->ip(),
+    //                 'date_created' => Carbon::now()->timestamp, 
+    //             ];
+        
+    //             $key = keyApi::create($keyData);
+        
+    //             return ApiFormatter::sendResponse(200,true,'Berhasil Login!',  ['user' => $user,
+    //             'api_key' => $key]);
+    //         }else{
+    //             return ApiFormatter::sendResponse(401,false,'Login Gagal, Email atau Password Salah!' );
+    //         }
+    //     }
+
+    //     catch (\Illuminate\Validation\ValidationException $th) {
+            
+    //         return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->validator->errors());
+    //     } catch (\Throwable $th) {
+            
+    //         return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->getMessage());
+    //     }
+       
+    // }
 
     public function index()
     {
@@ -104,7 +107,7 @@ class UserController extends Controller
             $user = User::create([
                 'username' => $request->input('username'),
                     'email' => $request->input('email'),
-                    'password' => $request->input('password'),
+                    'password' => Hash::make( $request->input('password')),
                     'role' => $request->input('role'),
             ]);
             
