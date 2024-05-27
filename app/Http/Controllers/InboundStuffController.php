@@ -19,83 +19,68 @@ class InboundStuffController extends Controller
 {
     $this->middleware('auth:api');
 }
-    public function index()
-    {
-        $iStuff = InboundStuff::with('stuff.stuffstock')->get();
+public function index()
+{
+    $iStuff = InboundStuff::with('stuff.stuffStock')->get();
 
-        return ApiFormatter::sendResponse(200,true,'Lihat semua barang', $iStuff);
-    // $stuff = InboundStuff::all();
-    // $stuffstock = StuffStock::all();
-    // $inboundstuff = InboundStuff::all();
+    $iStuff->each(function ($item) {
+        $item->proff_file_url = url('public/proff/' . $item->proff_file);
+    });
 
-    // if ($iStuff->isEmpty()) {
-    //     return ApiFormatter::sendResponse(404,false,'Data tidak ditemukan', $iStuff);
-    // }
-
-    // return response()->json([
-    //     'success' => true,
-    //     'message' => 'Lihat semua stock barang',
-    //     'data' => [
-    //         'barang' => $stuff,
-    //         'stock barang' => $stuffstock,
-    //         'barang masuk' => $inboundstuff
-    //     ]
-    // ], 200);
-    }
+    return ApiFormatter::sendResponse(200, true, 'Lihat semua barang', $iStuff);
+}
 
     public function store(Request $request)
     {
-        try{
+        try {
             $validator = Validator::make($request->all(), [
-                'stuff_id'   => 'required|integer',
+                'stuff_id' => 'required|integer',
                 'total' => 'required|integer',
                 'date' => 'required',
                 'proff_file' => 'required|image',
             ]);
-        
+    
             if ($validator->fails()) {
                 return ApiFormatter::sendResponse(400, false, 'Semua Kolom Wajib Diisi!', $validator->errors());
             } else {
-                // Mengambil file
-                $file = $request->file('proff_file');
-                $fileName = $request->input('stuff_id') . '_' . strtotime($request->input('date')) . strtotime(date('H:i')) . '.' . $file->getClientOriginalExtension();
-                $file->move('proff', $fileName);
-        
-                // Membuat InboundStuff
-                $inbound = InboundStuff::create([
-                    'stuff_id'     => $request->input('stuff_id'),
-                    'total'   => $request->input('total'),
-                    'date'   => $request->input('date'),
-                    'proff_file'   => $fileName,
-                ]);
-        
                 // Memeriksa ketersediaan stok
                 $stock = StuffStock::where('stuff_id', $request->input('stuff_id'))->first();
-        
-                if ($inbound && $stock) {
-                    // Memperbarui total stok yang tersedia
-                    $total_stock = $stock->total_available + (int)$request->input('total');
-                    $stock->update(['total_available' => $total_stock]);
-        
-                    return ApiFormatter::sendResponse(201, true, 'Barang Masuk Berhasil Disimpan!', $inbound);
-                } else {
+    
+                if (!$stock) {
                     // Jika stok tidak ditemukan
-                    return ApiFormatter::sendResponse(404, false, 'Stok tidak ditemukan untuk stuff_id yang ditemukan.', $inbound);
+                    return ApiFormatter::sendResponse(404, false, 'Stok tidak ditemukan untuk stuff_id yang ditemukan.');
                 }
-            }      
-        }
-        catch (\Illuminate\Validation\ValidationException $th) {
-            
+    
+                $file = $request->file('proff_file');
+                $fileName = $request->input('stuff_id') . '_' . strtotime($request->input('date')) . '_' . strtotime(date('H:i')) . '.' . $file->getClientOriginalExtension();
+                $file->move(('public/proff'), $fileName);
+    
+                $inbound = InboundStuff::create([
+                    'stuff_id' => $request->input('stuff_id'),
+                    'total' => $request->input('total'),
+                    'date' => $request->input('date'),
+                    'proff_file' => $fileName,
+                ]);
+    
+                // Update total stok setelah data inbound dibuat
+                $total_stock = $stock->total_available + (int)$request->input('total');
+                $stock->update(['total_available' => $total_stock]);
+    
+                return ApiFormatter::sendResponse(201, true, 'Barang Masuk Berhasil Disimpan!', $inbound);
+            }
+        } catch (\Illuminate\Validation\ValidationException $th) {
             return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->validator->errors());
+        } catch (\Exception $e) {
+            return ApiFormatter::sendResponse(500, false, 'Terjadi kesalahan pada server.', $e->getMessage());
         }
     }
-
+    
     public function show($id)
     {
         try {
-            $inbound = InboundStuff::with('stuff', 'stuff.stock')->findOrFail($id);
-
-
+            $inbound = InboundStuff::with('stuff', 'stuff.stuffStock')->findOrFail($id);
+            $inbound->proff_file_url = url('public/proff/' . $inbound->proff_file);
+    
             return ApiFormatter::sendResponse(200, true, "Lihat Barang Masuk dengan id $id", $inbound);
         } catch (\Throwable $th) {
             return ApiFormatter::sendResponse(404, false, "Data dengan id $id tidak ditemukan", $th->getMessage());
@@ -103,53 +88,53 @@ class InboundStuffController extends Controller
     }
 
 
-        public function update(Request $request, $id)
-        {
-            try {
-                $inbound = InboundStuff::with('stuff', 'stuff.stock')->findOrFail($id);
+       public function update(Request $request, $id)
+{
+    try {
+        $inbound = InboundStuff::with('stuff', 'stuff.stuffStock')->findOrFail($id);
 
+        $stuff_id = $request->input('stuff_id', $inbound->stuff_id);
+        $total = $request->input('total', $inbound->total);
+        $date = $request->input('date', $inbound->date);
 
-                $stuff_id = ($request->stuff_id) ? $request->stuff_id : $inbound->stuff_id;
-                $total = ($request->total) ? $request->total : $inbound->total;
-                $date = ($request->date) ? $request->date : $inbound->date;
-
-
-                if ($request->file('proff_file') !== NULL) {
-                    $file = $request->file('proff_file');
-                    $fileName = $stuff_id . '_' . strtotime($date) . strtotime(date('H:i')) . '.' . $file->getClientOriginalExtension();
-                    $file->move('public/proff', $fileName);
-                } else {
-                    $fileName = $inbound->proff_file;
-                }
-                $total_s = $total - $inbound->total;
-                $total_stock = (int)$inbound->stuff->stock->total_available + $total_s;
-                $inbound->stuff->stock->update([
-                    'total_available' => (int)$total_stock
-                ]);
-                if ($inbound) {
-                    $inbound->update([
-                        'stuff_id' => $stuff_id,
-                        'total' => $total,
-                        'date' => $date,
-                        'proff_file' => $fileName
-                    ]);
-                    return ApiFormatter::sendResponse(200, true, "Berhasil Ubah Data Barang Masuk dengan id $id", $inbound);
-                } else {
-                    return ApiFormatter::sendResponse(400, false, "Proses gagal!");
-                }
-            } catch (\Throwable $th) {
-                return ApiFormatter::sendResponse(400, false, "Proses Gagal!", $th->getMessage());
-            }
+        if ($request->hasFile('proff_file')) {
+            $file = $request->file('proff_file');
+            $fileName = $stuff_id . '_' . strtotime($date) . '_' . strtotime(date('H:i')) . '.' . $file->getClientOriginalExtension();
+            $file->move(('public/proff'), $fileName);
+        } else {
+            $fileName = $inbound->proff_file;
         }
+
+        $total_s = $total - $inbound->total;
+        $total_stock = (int)$inbound->stuff->stuffStock->total_available + $total_s;
+
+        $inbound->stuff->stuffStock->update(['total_available' => $total_stock]);
+
+        // Update data inbound
+        $inbound->update([
+            'stuff_id' => $stuff_id,
+            'total' => $total,
+            'date' => $date,
+            'proff_file' => $fileName
+        ]);
+
+        return ApiFormatter::sendResponse(200, true, "Berhasil Ubah Data Barang Masuk dengan id $id", $inbound);
+    } catch (\Throwable $th) {
+        return ApiFormatter::sendResponse(400, false, "Proses Gagal!", $th->getMessage());
+    }
+}
 
         public function deleted()
         {
             try {
                 $stuff = InboundStuff::onlyTrashed()->get();
+                $stuff->each(function ($item) {
+                    $item->proff_file_url = url('public/proff/' . $item->proff_file);
+                });
                 //jika tidak ada data yang dihapus
-                if ($stuff->count() === 0) {
-                    return ApiFormatter::sendResponse(200, true, "Tidak ada data yang dihapus");
-                }
+                // if ($stuff->count() === 0) {
+                //     return ApiFormatter::sendResponse(200, true, "Tidak ada data yang dihapus");
+                // }
                 //menampilkan data-data yang dihapus
                 return ApiFormatter::sendResponse(200, true, "Lihat Data Barang yang dihapus", $stuff);
             } catch (\Throwable $th) {

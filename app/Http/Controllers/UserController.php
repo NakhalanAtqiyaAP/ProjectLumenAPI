@@ -97,7 +97,7 @@ class UserController extends Controller
     {
         try {
             $this->validate($request, [
-             'username' => 'required|unique:users|min:3',
+            'username' => 'required|unique:users|min:3',
             'email' => 'required|unique:users|email',
             'password' => 'required|min:6',
             'role' => ['required', Rule::in(['admin', 'staff'])],
@@ -116,10 +116,11 @@ class UserController extends Controller
          catch (\Illuminate\Validation\ValidationException $th) {
             
             return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->validator->errors());
-        } catch (\Throwable $th) {
+        } 
+        // catch (\Throwable $th) {
             
-            return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->getMessage());
-        }
+        //     return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->getMessage());
+        // }
 
         // $validator = Validator::make($request->all(), [
         //     'username' => 'required|min:3',
@@ -271,17 +272,17 @@ class UserController extends Controller
     {
         try {
             $user = User::onlyTrashed()->where('id', $id);
-            $has_lending = Lending::where('stuff_id',$user->stuff_id)->get();
-            $has_res= Restoration::where('user_id',$user->stuff_id)->get();
+            // $has_lending = Lending::where('stuff_id',$user->stuff_id)->get();
+            // $has_res= Restoration::where('user_id',$user->stuff_id)->get();
 
-            $user->restore();
-            //jika tidak ada data yang dihapus
-            if ($has_lending && $has_res->count() === 1) {
-                return ApiFormatter::sendResponse(200, true, "data sudah ada tidak boleh duplikat");
-            }else{
+            // $user->restore();
+            // //jika tidak ada data yang dihapus
+            // if ($has_lending && $has_res->count() === 1) {
+            //     return ApiFormatter::sendResponse(200, true, "data sudah ada tidak boleh duplikat");
+            // }else{
                 $user->restore();
-                $message = "Berhasil mengembalikan data yang telah dihapus!";
-            }
+            //     $message = "Berhasil mengembalikan data yang telah dihapus!";
+            // }
             //mengembalikan data-data yang dihapus
             return ApiFormatter::sendResponse(200, true, "Berhasil Mengembalikan data yang telah dihapus!", ['id' => $id]);
         } catch (\Throwable $th) {
@@ -296,9 +297,9 @@ class UserController extends Controller
 
             $users->restore();
             //jika tidak ada data yang dihapus
-            if ($users->count() === 0) {
-                return ApiFormatter::sendResponse(200, true, "Tidak ada data yang dihapus");
-            }
+            // if ($users->count() === 0) {
+            //     return ApiFormatter::sendResponse(200, true, "Tidak ada data yang dihapus");
+            // }
             //mengembalikan data-data yang dihapus
             return ApiFormatter::sendResponse(200, true, "Berhasil mengembalikan barang yang telah dihapus");
         }
@@ -351,4 +352,23 @@ class UserController extends Controller
         return ApiFormatter::sendResponse(404, false, "Proses gagal! silakan coba lagi", $th->getMessage());
     }
     }
+
+    // public function uploadProfileImage(Request $request)
+    // {
+    //     $this->validate($request, [
+    //         'profileImage' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+    //     ]);
+
+    //     $user = Auth::user();
+    //     $image = $request->file('profileImage');
+    //     $imageName = time().'.'.$image->getClientOriginalExtension();
+    //     $path = $image->storeAs('profile_images', $imageName, 'public');
+
+    //     // Update user profile image path
+    //     $user->profile_image = $path;
+    //     $user->save();
+
+    //     return response()->json(['profileImage' => $path], 200);
+    // }
+
 }

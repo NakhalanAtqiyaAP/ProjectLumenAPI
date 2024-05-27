@@ -17,9 +17,10 @@ class RestorationController extends Controller
 {
     $this->middleware('auth:api');
 }
+
     public function index()
     {
-        $restoration = Restoration::with('lending')->get();
+        $restoration = Restoration::with('lending','user')->get();
 
        return ApiFormatter::sendResponse(200,true,'Lihat semua barang', $restoration);
     // $Restoration = Restoration::all();
@@ -38,56 +39,58 @@ class RestorationController extends Controller
     // ], 200);
     }
 
-    public function store (Request $request, $lending_id)
-    {
-        try {
-            $this->validate($request, [
-                'date_time'=> 'required',
-                'total_good_stuff' => 'required',
-                'total_defec_stuff' => 'required',
+    public function store(Request $request, $lending_id)
+{
+    try {
+        $this->validate($request, [
+            'date_time' => 'required',
+            'total_good_stuff' => 'required',
+            'total_defect_stuff' => 'required',  
+        ]);
+
+        $lending = Lending::where('id', $lending_id)->first();
+
+        $totalStuffRestoration = (int)$request->total_good_stuff + (int)$request->total_defect_stuff;
+        if ((int)$totalStuffRestoration > (int)$lending['total_stuff']) {
+            return ApiFormatter::sendResponse(400, 'bad request', 'Total barang kembali lebih banyak dari barang dipinjam!');
+        } else {
+            $restoration = Restoration::updateOrCreate([
+                'lending_id' => $lending_id
+            ], [
+                'date_time' => $request->date_time,
+                'total_good_stuff' => $request->total_good_stuff,
+                'total_defect_stuff' => $request->total_defect_stuff, 
+                'user_id' => auth()->user()->id,
             ]);
 
-            $lending = Lending::where('id', $lending_id)->first();
+            $stuffStock = StuffStock::where('stuff_id', $lending['stuff_id'])->first();
+            $totalAvailableStock = (int)$stuffStock['total_available'] + (int)$request->total_good_stuff;
+            $totalDefectStock = (int)$stuffStock['total_defec'] + (int)$request->total_defect_stuff;
+            $stuffStock->update([
+                'total_available' => $totalAvailableStock,
+                'total_defec' => $totalDefectStock,
+            ]);
 
-            $totalStuffRestoration = (int)$request->total_godd_stuff + (int)$request->total_defec_stuff;
-            if ((int)$totalStuffRestoration > (int)$lending['total_stuff']) {
-                return ApiFormatter::sendResponse(400, 'bad request', 'Total barang kembali lebih banyak dari barang dipinjam!');
-            } else {
-                $restoration = Restoration::updateOrCreate([
-                    'lending_id' => $lending_id
-                ], [
-                    'date_time' => $request->date_time,
-                    'total_good_stuff' => $request->total_good_stuff,
-                    'total_defec_stuff' => $request->total_defec_stuff,
-                    'user_id' => auth()->user()->id,
-                ]);
-
-                $stuffStock = StuffStock::where('stuff_id', $lending['stuff_id'])->first();
-                $totalAvailableStock = (int)$stuffStock['total_available'] + (int)$request->total_good_stuff;
-                $totalDefecStock = (int)$stuffStock['total_defec'] + (int)$request->total_defec_stuff;
-                $stuffStock->update([
-                    'total_available' => $totalAvailableStock,
-                    'total_defec' => $totalDefecStock,
-                ]);
-
-                $lendingRestoration = Lending::where('id', $lending_id)->with('user', 'restoration', 'restoration.user', 'stuff', 'stuff.stuffStock')->first();
-                return ApiFormatter::sendResponse(200, 'success', $lendingRestoration);
+            $lendingRestoration = Lending::where('id', $lending_id)->with('user', 'restoration', 'restoration.user', 'stuff', 'stuff.stuffStock')->first();
+            return ApiFormatter::sendResponse(200, true,'success', $lendingRestoration);
         }
     } catch (\Exception $err) {
-        return ApiFormatter::sendResponse(400, 'bad request', $err->getMessage());
+        return ApiFormatter::sendResponse(400, false,'bad request', $err->getMessage());
     }
 }
+
  
     public function show($id)
     {
-        try{
-            $data = Lending::where('id', $id)->with('user', 'restoration', 'restoration.user', 'stuff', 'stuff.stuffstock')->first();
-
-            return ApiFormatter::sendResponse(200,'success', $data);
-        }
-        catch(\Exception $err)
-        {
-            return ApiFormatter::sendResponse(404, 'bad request', $err->getMessage());
+        try {
+            // $data = Lending::with('user', 'restoration', 'restoration.user', 'stuff', 'stuff.stuffStock')->first();
+            $data = Restoration::with('lending', 'user', 'lending.stuff', 'lending.stuff.stuffStock', )->first();
+            if (!$data) {
+                return ApiFormatter::sendResponse(404,false, 'Data tidak ditemukan', null);
+            }
+            return ApiFormatter::sendResponse(200,true, 'success', $data);
+        } catch (\Exception $err) {
+            return ApiFormatter::sendResponse(500,false, 'Kesalahan Server Internal', $err->getMessage());
         }
 
         // $Restoration = Restoration::find($id);
@@ -115,7 +118,7 @@ class RestorationController extends Controller
             $lending_id = ($request ->lending_id) ? $request->lending_id : $Restoration->lending_id;
             $date_time = ($request ->date_time) ? $request->date_time : $Restoration->date_time;
             $total_good_stuff = ($request ->total_good_stuff) ? $request->total_good_stuff : $Restoration->total_good_stuff;
-            $total_defec_stuff = ($request ->total_defec_stuff) ? $request->total_defec_stuff : $Restoration->total_defec_stuff;
+            $total_defect_stuff = ($request ->total_defect_stuff) ? $request->total_defect_stuff : $Restoration->total_defect_stuff;
             
 
         if($Restoration){
@@ -124,7 +127,7 @@ class RestorationController extends Controller
             'lending_id' => $lending_id,
             'date_time' => $date_time,
             'total_good_stuff' => $total_good_stuff,
-            'total_defec_stuff' => $total_defec_stuff,
+            'total_defect_stuff' => $total_defect_stuff,
             
             ]);
 
@@ -141,9 +144,9 @@ public function deleted()
         try {
             $restoration = Restoration::onlyTrashed()->get();
             //jika tidak ada data yang dihapus
-            if ($restoration->count() === 0) {
-                return ApiFormatter::sendResponse(200, true, "Tidak ada data yang dihapus");
-            }
+            // if ($restoration->count() === 0) {
+            //     return ApiFormatter::sendResponse(200, true, "Tidak ada data yang dihapus");
+            // }
             //menampilkan data-data yang dihapus
             return ApiFormatter::sendResponse(200, true, "Lihat Data Barang yang dihapus", $restoration);
         } catch (\Throwable $th) {
@@ -206,7 +209,6 @@ public function deleted()
 {
     try{
         $restoration = Restoration::onlyTrashed();
-
         $restoration->forceDelete();
         return ApiFormatter::sendResponse(200, true, "Berhasil menghapus semua data secara permanen!");
     }

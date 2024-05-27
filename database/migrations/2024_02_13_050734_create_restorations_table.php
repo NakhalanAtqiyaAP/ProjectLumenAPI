@@ -17,7 +17,7 @@ return new class extends Migration
             $table->bigInteger("lending_id");
             $table->datetime("date_time");
             $table->integer("total_good_stuff");
-            $table->integer("totoal_detec_stuff");
+            $table->integer("total_defect_stuff");
             $table->timestamps();
             $table->softDeletes();
         });

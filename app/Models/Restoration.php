@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Restoration extends Model
 {
     use SoftDeletes;
-    protected $fillable = ["user_id", "lending_id", "date_time", "total_good_stuff", "total_defec_stuff"];
+    protected $fillable = ["user_id", "lending_id", "date_time", "total_good_stuff", "total_defect_stuff"];
 
     public function user()
     {

@@ -14,6 +14,12 @@ class Lending extends Model
         return $this->belongsTo(Stuff::class);
     }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+
     public function restoration()
     {
         return $this->hasOne(Restoration::class);

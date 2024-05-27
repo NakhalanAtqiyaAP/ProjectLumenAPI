@@ -187,9 +187,9 @@ class StuffController extends Controller
         try {
             $stuff = Stuff::onlyTrashed()->get();
             //jika tidak ada data yang dihapus
-            if ($stuff->count() === 0) {
-                return ApiFormatter::sendResponse(200, true, "Tidak ada data yang dihapus");
-            }
+            // if ($stuff->count() === 0) {
+            //     return ApiFormatter::sendResponse(200, true, "Tidak ada data yang dihapus");
+            // }
             //menampilkan data-data yang dihapus
             return ApiFormatter::sendResponse(200, true, "Lihat Data Barang yang dihapus", $stuff);
         } catch (\Throwable $th) {
@@ -204,9 +204,9 @@ class StuffController extends Controller
 
             $stuff->restore();
             //jika tidak ada data yang dihapus
-            if ($stuff->count() === 0) {
-                return ApiFormatter::sendResponse(200, true, "Tidak ada data yang dihapus");
-            }
+            // if ($stuff->count() === 0) {
+            //     return ApiFormatter::sendResponse(200, true, "Tidak ada data yang dihapus");
+            // }
             //mengembalikan data-data yang dihapus
             return ApiFormatter::sendResponse(200, true, "Berhasil Mengembalikan data yang telah dihapus!", ['id' => $id]);
         } catch (\Throwable $th) {
@@ -223,9 +223,9 @@ class StuffController extends Controller
 
             $stuffs->restore();
             //jika tidak ada data yang dihapus
-            if ($stuffs->count() === 0) {
-                return ApiFormatter::sendResponse(200, true, "Tidak ada data yang dihapus");
-            }
+            // if ($stuffs->count() === 0) {
+            //     return ApiFormatter::sendResponse(200, true, "Tidak ada data yang dihapus");
+            // }
             //mengembalikan data-data yang dihapus
             return ApiFormatter::sendResponse(200, true, "Berhasil mengembalikan barang yang telah dihapus");
         }
@@ -294,7 +294,7 @@ public function permanentDelateAll()
     
             return ApiFormatter::sendResponse(200, true, "Berhasil menghapus data dengan id $id");
         } catch (\Exception $err) {
-            return ApiFormatter::sendResponse(400, false, "Gagal menghapus Stuff dengan id   $id", $err->getMessage());
+            return ApiFormatter::sendResponse(400, false, "Gagal menghapus Stuff dengan id  w $id", $err->getMessage());
         }
     
     }

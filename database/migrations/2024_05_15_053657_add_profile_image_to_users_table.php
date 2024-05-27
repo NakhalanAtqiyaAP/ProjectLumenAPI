@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         // Schema::table('users', function (Blueprint $table) {
-        //     $table->string('api_key')->nullable()->unique();
+        //     $table->string('profile_image')->nullable();
         // });
     }
 
