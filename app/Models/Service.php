@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-class Lending extends Model
+
+class Service extends Model
 {
     use SoftDeletes;
-    protected $fillable = ["stuff_id", "date_time", "name", "user_id", "notes", "total_stuff"];
+    protected $fillable = ["stuff_id", "barang", "keterangan", "periksa"];
 
     public function stuff()
     {
@@ -16,14 +17,6 @@ class Lending extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class);
-    }
-
-
-    public function restoration()
-    {
         return $this->hasOne(Restoration::class);
     }
-
-    
 }

@@ -24,6 +24,12 @@ $router->get('/', function () use ($router){
 
 
 $router->group(['middleware' => 'cors'], function($router){
+//Service
+Route::get('/service', 'ServiceController@index');
+Route::post('/service', 'ServiceController@store');
+Route::get('/service/{id}', 'ServiceController@show');
+Route::put('/service/{id}', 'ServiceController@update');
+Route::delete('/service/{id}', 'ServiceController@destroy');
 // STUFF
 Route::get('/stuff', 'StuffController@index');
 Route::post('/stuff', 'StuffController@store');

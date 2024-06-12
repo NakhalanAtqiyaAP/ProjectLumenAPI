@@ -94,30 +94,46 @@ class UserController extends Controller
     }
 
     public function store(Request $request)
-    {
-        try {
-            $this->validate($request, [
+{
+    try {
+        // Definisikan aturan validasi
+        $this->validate($request, [
             'username' => 'required|unique:users|min:3',
             'email' => 'required|unique:users|email',
             'password' => 'required|min:6',
             'role' => ['required', Rule::in(['admin', 'staff'])],
+        ], [
+            'password.min' => 'Password harus lebih dari 6 karakter.',
+            // 'username.min' => 'Username harus lebih dari 3 karakter.'
+        ]);
 
-        
-            ]);
-            $user = User::create([
-                'username' => $request->input('username'),
-                    'email' => $request->input('email'),
-                    'password' => Hash::make( $request->input('password')),
-                    'role' => $request->input('role'),
-            ]);
-            
-            return ApiFormatter::sendResponse(201, true, 'Barang Berhasil Disimpan!', $user);
+        $user = User::create([
+            'username' => $request->input('username'),
+            'email' => $request->input('email'),
+            'password' => Hash::make($request->input('password')),
+            'role' => $request->input('role'),
+        ]);
+
+        return ApiFormatter::sendResponse(201, true, 'User Berhasil Disimpan!', $user);
+    } catch (\Illuminate\Validation\ValidationException $th) {
+        $errors = $th->validator->errors();
+
+        // if($errors->has('username')){
+        //     $errorMessage = $errors->first('username');
+        // }else{
+        //     $errorMessage = 'Terdapat Kesalahan Input Silakan Coba Lagi!';
+        // }
+
+        if ($errors->has('password')) {
+            $errorMessage = $errors->first('password');
+        } else {
+            $errorMessage = 'Terdapat Kesalahan Input Silahkan Coba Lagi!';
         }
-         catch (\Illuminate\Validation\ValidationException $th) {
-            
-            return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->validator->errors());
-        } 
-        // catch (\Throwable $th) {
+
+        return ApiFormatter::sendResponse(400, false, $errorMessage, $errors);
+    } 
+
+    // catch (\Throwable $th) {
             
         //     return ApiFormatter::sendResponse(400, false, 'Terdapat Kesalahan Input Silahkan Coba Lagi!', $th->getMessage());
         // }

@@ -50,6 +50,9 @@ class RestorationController extends Controller
 
         $lending = Lending::where('id', $lending_id)->first();
 
+        if(!$lending){
+            return ApiFormatter::sendResponse(400, 'bad request', "Id Peminjaman '$lending_id' tidak ada");
+        }
         $totalStuffRestoration = (int)$request->total_good_stuff + (int)$request->total_defect_stuff;
         if ((int)$totalStuffRestoration > (int)$lending['total_stuff']) {
             return ApiFormatter::sendResponse(400, 'bad request', 'Total barang kembali lebih banyak dari barang dipinjam!');
@@ -70,9 +73,11 @@ class RestorationController extends Controller
                 'total_available' => $totalAvailableStock,
                 'total_defec' => $totalDefectStock,
             ]);
-
+            
             $lendingRestoration = Lending::where('id', $lending_id)->with('user', 'restoration', 'restoration.user', 'stuff', 'stuff.stuffStock')->first();
-            return ApiFormatter::sendResponse(200, true,'success', $lendingRestoration);
+            return ApiFormatter::sendResponse(200, true,'Berhasil Menambahkan Data!', $lendingRestoration);
+
+           
         }
     } catch (\Exception $err) {
         return ApiFormatter::sendResponse(400, false,'bad request', $err->getMessage());

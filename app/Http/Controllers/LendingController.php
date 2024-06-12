@@ -53,7 +53,6 @@ class LendingController extends Controller
                 'name' => 'required',
                 'total_stuff' => 'required|numeric',
                 'notes' => 'required',
-                'user_id' => 'required',
             ]);
     
             $totalAvailable = StuffStock::where('stuff_id', $request->stuff_id)->value('total_available');
